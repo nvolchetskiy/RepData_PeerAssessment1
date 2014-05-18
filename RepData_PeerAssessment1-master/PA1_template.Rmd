@@ -1,0 +1,99 @@
+ "Reproducible Research" - Peer Assessment 1 -
+===============================================
+## Loading and preprocessing the data
+
+```{r init}
+data <-read.csv("~/Desktop/assig1/activity.csv",colClasses=c("integer","Date","integer"))
+head(data, n=5)
+```
+
+## What is mean total number of steps taken per day?
+1. Data by day (date) and number of steps per day.
+2. Histogamme.
+3. Mean and mediane.
+
+```{r number_of_steps}
+n.steps <- sapply(split(data$steps,data$date),sum,na.rm=T)
+hist(n.steps, main ="Histogram of the steps per day")
+mean_ <- mean(n.steps)
+median_ <- median(n.steps)
+```
+The mean of number of steps is **`r mean_`** and mediane is **`r median_`.**  
+
+## What is the average daily activity pattern?
+1. Split data by intervals.
+2. Average of steps in each 5 minutes interval.
+3. Plot 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
+4. Find the interval that contain maximum number of steps. 
+
+```{r figure_1 fig.width=15}
+avrg_interv<-sapply(split(data$steps,data$interval),mean,na.rm=T)
+intervals<- unique(data$interval)
+plot(x=intervals,y=avrg_interv,type='l',xlab='5-minute intervals',ylab='average number of step',main = "Average daily activity")
+
+t.interval<-sapply(split(data$steps,data$interval),sum,na.rm=T)
+ind.max <- which.max(t.interval)
+interval.max <- max(t.interval)
+```
+
+The 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps is **`r interval.max`** and it contain **`r interval.max`** steps.
+
+## Imputing missing values
+Removing all missing values form data to build a new data set.
+```{r removing_NA}
+nrow(na.omit(data))
+new.data<-data
+for(i in 1:nrow(data)){
+    if(is.na(data$steps[i])){new.data$steps[i]<-avrg_interv[(i %% 288)+1] }
+}
+```
+
+1. New histogamme.
+2. New mean and mediane after removing missing values (NA).
+```{r new_data_without_NA}
+t.steps1 <- sapply(split(new.data$steps,new.data$date),sum,na.rm=T)
+hist(t.steps1, main "Histogramme once NA are imputed")
+
+mean.1 <- mean(t.steps1)
+median.1 <- median(t.steps1)
+```
+
+The new mean of number of steps is **`r mean1`** and the old one is **`r mean_`**.  
+The new mediane is **`r median1`** and the old one is **`r median_`**.  
+
+## Are there differences in activity patterns between weekdays and weekends?
+Function determining if Date is weekday or weekend.
+```{r function}
+# library("reshape")
+# Sys.setlocale("LC_TIME")
+weekenday<-function(x){
+    if(weekdays(x)  %in% c( "Saturday","Sunday")) "weekend"
+    else "weekday"      
+}
+```
+
+1. New column aded to idicate if this day is weekend or weekday.
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+
+```{r weekend_weekday}
+weekend <- sapply(data$date,weekenday)
+data <- cbind(data,weekend)
+tmp<- split(data,data$weekend)
+d1<-tmp$weekday; d2<-tmp$weekend
+rm(tmp)
+avrg.intrv1<-sapply(split(d1$steps,d1$interval),sum,na.rm=T)
+avrg.intrv2<-sapply(split(d2$steps,d2$interval),sum,na.rm=T)
+intervals<- unique(data$interval)
+d1 <- data.frame(steps=avrg.intrv1,interval=intervals,nature="weekday")
+d2 <- data.frame(steps=avrg.intrv2,interval=intervals,nature="weekend")
+data.n <- rbind(d1,d2)
+```
+
+    
+```{r figure_ fig.width=15}
+library("lattice")
+xyplot(data=data.n,steps~interval|nature,layout=c(1,2),type="l",ylab="Number of steps",lwd=2)
+```
+
+### Conclusion:
+Usually, the number of steps on weekends is lower than it is on weekdays. Maybe, it is because people don't go to work.
